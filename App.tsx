@@ -10,15 +10,21 @@ import { supabase, isSupabaseConfigured } from './lib/supabase';
 import type { Session } from '@supabase/supabase-js';
 
 const SupabaseNotConfigured: React.FC = () => (
-  <div className="flex flex-col justify-center items-center text-center flex-grow animate-fadeIn bg-amber-100 dark:bg-amber-900/30 p-8 rounded-lg border border-amber-300 dark:border-amber-700">
-    <h2 className="text-2xl font-bold text-amber-700 dark:text-amber-300">Supabase Not Configured</h2>
-    <p className="mt-4 text-lg text-amber-800 dark:text-amber-400">
+  <div className="flex flex-col justify-center items-center text-center flex-grow animate-fadeIn bg-red-100 dark:bg-red-900/30 p-8 rounded-lg border border-red-300 dark:border-red-700">
+    <h2 className="text-2xl font-bold text-red-700 dark:text-red-300">Supabase Not Configured</h2>
+    <p className="mt-4 text-lg text-red-800 dark:text-red-400">
       To enable authentication and product listing, you need to configure your Supabase credentials.
     </p>
-    <p className="mt-2">Please update the following file with your project's URL and anon key:</p>
-    <p className="mt-2 font-mono bg-amber-200 dark:bg-gray-700 p-2 rounded text-sm text-amber-900 dark:text-amber-200">
-      lib/supabase.ts
-    </p>
+    <div className="mt-4 text-left bg-red-50 dark:bg-gray-800 p-4 rounded-md text-sm w-full max-w-lg">
+      <p className="font-semibold text-gray-800 dark:text-gray-200">Please update the file <code className="bg-red-200 dark:bg-gray-700 p-1 rounded">lib/supabase.ts</code> with your project's URL and anon key.</p>
+      <p className="mt-2 text-gray-600 dark:text-gray-400">You need to replace these placeholder values:</p>
+      <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-900 rounded overflow-x-auto text-xs">
+        <code>
+          const supabaseUrl = 'YOUR_SUPABASE_URL';<br/>
+          const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+        </code>
+      </pre>
+    </div>
   </div>
 );
 
