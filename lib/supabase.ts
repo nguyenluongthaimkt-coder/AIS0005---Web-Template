@@ -2,12 +2,12 @@ import { createClient } from '@supabase/supabase-js';
 
 // IMPORTANT: Replace these with your actual Supabase project URL and anon key.
 // You can find these in your Supabase project settings under "API".
-const supabaseUrl = 'https://your-project-id.supabase.co';
-const supabaseAnonKey = 'your-anon-key';
+const supabaseUrl = 'https://lmwcvulazahaweyikkjq.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxtd2N2dWxhemFoYXdleWlra2pxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzMjU1MTcsImV4cCI6MjA3NjkwMTUxN30.Jcz4hlmETfTKO-9JjxEfax7OVNcxeGlCJ6v-FLaToTE';
 
 export const isSupabaseConfigured =
-  supabaseUrl !== 'https://your-project-id.supabase.co' &&
-  supabaseAnonKey !== 'your-anon-key';
+  supabaseUrl !== 'https://lmwcvulazahaweyikkjq.supabase.co' &&
+  supabaseAnonKey !== 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxtd2N2dWxhemFoYXdleWlra2pxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzMjU1MTcsImV4cCI6MjA3NjkwMTUxN30.Jcz4hlmETfTKO-9JjxEfax7OVNcxeGlCJ6v-FLaToTE';
 
 if (!isSupabaseConfigured) {
   console.warn(
