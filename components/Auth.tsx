@@ -1,114 +1,211 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Translation } from '../types';
-import { LogoIcon } from './Icons';
+import { LogoIcon, XIcon } from './Icons';
 
-interface AuthProps {
+interface AuthModalProps {
     t: Translation;
+    isOpen: boolean;
+    onClose: () => void;
+    prompt?: string;
 }
 
-const Auth: React.FC<AuthProps> = ({ t }) => {
+type AuthView = 'signIn' | 'signUp' | 'forgotPassword';
+
+const AuthModal: React.FC<AuthModalProps> = ({ t, isOpen, onClose, prompt }) => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [authView, setAuthView] = useState<AuthView>('signIn');
 
-  const handleLogin = async (event: React.FormEvent) => {
+  useEffect(() => {
+    if (isOpen) {
+      // Reset state when modal opens
+      setEmail('');
+      setPassword('');
+      setError(null);
+      setMessage(null);
+      setAuthView('signIn');
+      if (prompt) {
+        setMessage(prompt);
+      }
+    }
+  }, [isOpen, prompt]);
+
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setError(null);
+    setMessage(null);
 
-    if (error) {
-      // FIX: The `AuthError` object from Supabase has a `message` property, not `error_description`.
-      alert(error.message);
+    let authError = null;
+
+    if (authView === 'signUp') {
+      const { error } = await supabase.auth.signUp({ email, password });
+      authError = error;
+      if (!error) setMessage(t.magicLinkSent);
+    } else { // 'signIn'
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      authError = error;
+      if (!error) onClose();
+    }
+    
+    if (authError) {
+      setError(authError.message);
     }
     setLoading(false);
   };
-
-  const handleSignup = async (event: React.FormEvent) => {
+  
+  const handlePasswordReset = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password });
-
+    setError(null);
+    setMessage(null);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+       // Also provide redirectTo for password reset emails to work in this environment
+       redirectTo: window.location.origin,
+    });
     if (error) {
-      // FIX: The `AuthError` object from Supabase has a `message` property, not `error_description`.
-      alert(error.message);
+        setError(error.message);
     } else {
-        alert(t.magicLinkSent);
+        setMessage(t.magicLinkSent);
     }
     setLoading(false);
-  };
+  }
+
+  if (!isOpen) return null;
 
   return (
-    <div className="w-full max-w-sm mx-auto animate-fadeInUp">
-        <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-lg p-8 rounded-2xl shadow-2xl border border-black/5 dark:border-white/10">
-            <div className="flex flex-col items-center mb-6">
-                <LogoIcon size={40} />
-                <h1 className="text-2xl font-bold text-center mt-3 bg-clip-text text-transparent bg-gradient-to-r from-[var(--gradient-from)] to-[var(--gradient-to)] dark:from-[var(--accent-color-dark)] dark:to-[var(--gradient-to)]">
-                  {t.authHeader}
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400 text-sm text-center mt-1">{t.authPrompt}</p>
+    <div 
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 animate-fadeIn"
+        onClick={onClose}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="auth-modal-title"
+    >
+      <div 
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm transform transition-all duration-300 ease-out animate-fadeInUp overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-8 relative">
+          <button 
+              onClick={onClose} 
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors z-10"
+              aria-label={t.close}
+          >
+              <XIcon size={24} />
+          </button>
+          
+          <div className="flex flex-col items-center mb-6">
+              <LogoIcon size={40} />
+              <h1 id="auth-modal-title" className="text-2xl font-bold text-center mt-3 bg-clip-text text-transparent bg-gradient-to-r from-[var(--gradient-from)] to-[var(--gradient-to)] dark:from-[var(--accent-color-dark)] dark:to-[var(--gradient-to)]">
+                 {authView === 'forgotPassword' ? 'Reset Password' : (prompt ? t.signInToContinue : t.authHeader)}
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 text-sm text-center mt-1">
+                {authView !== 'forgotPassword' && (prompt || t.authPrompt)}
+              </p>
+          </div>
+
+          {authView !== 'forgotPassword' ? (
+            <>
+            <div className="grid grid-cols-2 text-center text-sm font-medium text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 mb-6">
+                <button onClick={() => setAuthView('signIn')} className={`py-3 transition-colors ${authView === 'signIn' ? 'text-[var(--accent-color)] border-b-2 border-[var(--accent-color)]' : 'hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                    {t.signIn}
+                </button>
+                 <button onClick={() => setAuthView('signUp')} className={`py-3 transition-colors ${authView === 'signUp' ? 'text-[var(--accent-color)] border-b-2 border-[var(--accent-color)]' : 'hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                    {t.signUp}
+                </button>
             </div>
-            <form onSubmit={handleLogin}>
-                <div className="space-y-4">
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            {t.emailLabel}
-                        </label>
-                        <input
-                            id="email"
-                            className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-[var(--accent-color)] focus:border-[var(--accent-color)] sm:text-sm"
-                            type="email"
-                            placeholder="you@example.com"
-                            value={email}
-                            required
-                            onChange={(e) => setEmail(e.target.value)}
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                           {t.passwordLabel}
-                        </label>
-                        <input
-                            id="password"
-                            className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-[var(--accent-color)] focus:border-[var(--accent-color)] sm:text-sm"
-                            type="password"
-                            placeholder="••••••••"
-                            value={password}
-                            required
-                            minLength={6}
-                            onChange={(e) => setPassword(e.target.value)}
-                        />
-                    </div>
-                </div>
-                <div className="mt-6 space-y-3">
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[var(--gradient-from)] to-[var(--gradient-to)] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)] disabled:opacity-50 transition"
-                    >
-                        {loading ? t.signingIn : t.signIn}
-                    </button>
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-300 dark:border-gray-600" />
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-gray-50 dark:bg-gray-900 text-gray-500">{t.authPromptLogin}</span>
-                        </div>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={handleSignup}
-                        disabled={loading}
-                        className="w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)] disabled:opacity-50 transition"
-                    >
-                         {loading ? t.signingUp : t.signUp}
+            
+            <form onSubmit={handleSubmit}>
+              <div className="space-y-4">
+                  <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
+                          {t.emailLabel}
+                      </label>
+                      <input
+                          id="email"
+                          className="mt-1 block w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent sm:text-sm"
+                          type="email"
+                          placeholder={t.emailLabel}
+                          value={email}
+                          required
+                          onChange={(e) => setEmail(e.target.value)}
+                      />
+                  </div>
+                  <div>
+                      <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
+                         {t.passwordLabel}
+                      </label>
+                      <input
+                          id="password"
+                          className="mt-1 block w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent sm:text-sm"
+                          type="password"
+                          placeholder={t.passwordLabel}
+                          value={password}
+                          required
+                          onChange={(e) => setPassword(e.target.value)}
+                      />
+                  </div>
+              </div>
+              
+              {authView === 'signIn' && (
+                <div className="text-right mt-2">
+                    <button type="button" onClick={() => setAuthView('forgotPassword')} className="text-xs text-gray-500 dark:text-gray-400 hover:text-[var(--accent-color)] dark:hover:text-[var(--accent-color-dark)] transition-colors">
+                        Forgot Password?
                     </button>
                 </div>
+              )}
+
+              {error && <p className="mt-3 text-center text-xs text-red-500">{error}</p>}
+              {message && <p className="mt-3 text-center text-xs text-green-500">{message}</p>}
+
+              <div className="mt-6">
+                  <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[var(--gradient-from)] to-[var(--gradient-to)] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)] disabled:opacity-50 transition"
+                  >
+                      {loading ? (authView === 'signIn' ? t.signingIn : t.signingUp) : (authView === 'signIn' ? t.signIn : t.signUp)}
+                  </button>
+              </div>
             </form>
+            </>
+          ) : (
+            <form onSubmit={handlePasswordReset}>
+                 <p className="text-sm text-center text-gray-600 dark:text-gray-400 mb-4">Enter your email and we'll send you a link to reset your password.</p>
+                 <input
+                    id="email-reset"
+                    className="mt-1 block w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent sm:text-sm"
+                    type="email"
+                    placeholder={t.emailLabel}
+                    value={email}
+                    required
+                    onChange={(e) => setEmail(e.target.value)}
+                />
+                 {error && <p className="mt-3 text-center text-xs text-red-500">{error}</p>}
+                 {message && <p className="mt-3 text-center text-xs text-green-500">{message}</p>}
+
+                 <button
+                    type="submit"
+                    disabled={loading}
+                    className="mt-6 w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[var(--gradient-from)] to-[var(--gradient-to)] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)] disabled:opacity-50 transition"
+                >
+                    {loading ? 'Sending...' : 'Send Reset Link'}
+                </button>
+                <button type="button" onClick={() => setAuthView('signIn')} className="mt-3 w-full text-center text-xs text-gray-500 dark:text-gray-400 hover:text-[var(--accent-color)] dark:hover:text-[var(--accent-color-dark)] transition-colors">
+                    Back to Sign In
+                </button>
+            </form>
+          )}
+
         </div>
+      </div>
     </div>
   );
 };
 
-export default Auth;
+export default AuthModal;
